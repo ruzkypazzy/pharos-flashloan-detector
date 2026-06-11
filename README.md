@@ -6,13 +6,37 @@ The detector looks for the three fingerprints every flash-loan attack leaves on-
 
 ## Install
 
+### 1. Install Foundry (the engine the skill is built on)
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+Verify with `cast --version`. This gives you `cast`, `forge`, `anvil`, and `chisel` on your `$PATH`.
+
+### 2. Install jq (used to parse JSON)
+
+```bash
+# macOS
+brew install jq
+# Debian/Ubuntu/Termux
+apt install -y jq
+# Alpine
+apk add jq
+```
+
+Verify with `jq --version`.
+
+### 3. Get the skill
+
 ```bash
 git clone https://github.com/ruzkypazzy/pharos-flashloan-detector
 cd pharos-flashloan-detector
 chmod +x scripts/detect.sh
 ```
 
-No build step, no Foundry required. Pure Python 3.10+ standard library. The only optional dependency is `pytest` if you want to run the test suite.
+That's it. No `pip install`, no `forge build`, no compile. The skill is a single bash script that uses `cast` (from Foundry) for every RPC read. The `assets/networks.json` file already knows the Pharos Pacific Mainnet and Atlantic Testnet endpoints.
 
 ## Quick start
 
@@ -22,36 +46,19 @@ No build step, no Foundry required. Pure Python 3.10+ standard library. The only
 bash scripts/detect.sh demo
 ```
 
-This runs `python3 detector.py demo` against a real known mainnet flash-loan tx and prints a Markdown risk report.
+This runs the bash detector against a real known mainnet flash-loan tx and prints a Markdown risk report.
 
 ### Analyze a specific transaction
 
 ```bash
 # Mainnet (default)
-bash scripts/detect.sh 0xYOUR_TX_HASH
+bash scripts/detect.sh --tx 0xYOUR_TX_HASH
 
 # Testnet
-bash scripts/detect.sh 0xYOUR_TX_HASH --chain testnet
+bash scripts/detect.sh --tx 0xYOUR_TX_HASH --chain testnet
 
 # JSON output (machine-readable, for an agent)
-bash scripts/detect.sh 0xYOUR_TX_HASH --json
-```
-
-You can also call the Python module directly:
-
-```bash
-python3 detector.py --tx 0xYOUR_TX_HASH
-python3 detector.py --tx 0xYOUR_TX_HASH --chain mainnet --json
-```
-
-### Use as a Python library (from inside an agent)
-
-```python
-from detector import FlashloanDetector
-
-det = FlashloanDetector(rpc="https://rpc.pharos.xyz", chain="mainnet")
-report = det.analyze("0xYOUR_TX_HASH")
-print(report.risk_level, report.risk_score, report.indicators)
+bash scripts/detect.sh --tx 0xYOUR_TX_HASH --format json
 ```
 
 ## What it looks for
@@ -76,6 +83,19 @@ print(report.risk_level, report.risk_score, report.indicators)
 
 Default is **mainnet**; pass `--chain testnet` to switch.
 
+## Use as a library (from inside an agent, via subprocess)
+
+```python
+import subprocess, json
+out = subprocess.check_output([
+    "bash", "scripts/detect.sh",
+    "--tx", "0xYOUR_TX_HASH",
+    "--format", "json",
+])
+report = json.loads(out)
+print(report["risk_level"], report["risk_score"])
+```
+
 ## Tests
 
 ```bash
@@ -90,14 +110,17 @@ python3 -m pytest tests/ -v
 
 ```
 .
-├── README.md              # this file
-├── SKILL.md               # Agent-side description (loaded by Claude/Codex/etc.)
-├── detector.py            # Main Python module — heuristics + RPC + scoring
+├── README.md                  # this file
+├── SKILL.md                   # Agent-side description (loaded by Claude/Codex/etc.)
 ├── scripts/
-│   └── detect.sh          # Thin bash wrapper for the CLI
+│   └── detect.sh              # bash + cast engine — the entire skill
+├── assets/
+│   └── networks.json          # Pharos Skill Engine network config
 └── tests/
-    └── test_detector.py   # 10-test pytest suite
+    └── test_detect_smoke.sh   # bash smoke test
 ```
+
+The v1.x Python implementation (`detector.py`, `tests/test_detector.py`) was removed in v2.0.0 when the skill was rewritten as a pure Foundry/bash engine. The repo now contains only bash + cast.
 
 ## Notes
 
