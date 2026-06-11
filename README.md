@@ -127,6 +127,28 @@ The v1.x Python implementation (`detector.py`, `tests/test_detector.py`) was rem
 - Default RPC is the public Pharos endpoint. For high-volume usage, point `--rpc-url` at a paid provider.
 - The score is heuristic. For a security-critical decision (e.g. whitelisting a wallet to copy), still verify the contract source on PharosScan.
 
+
+## Framework
+
+| Layer | Tool |
+|---|---|
+| Engine | bash + Foundry `cast` |
+| JSON parsing | `jq` |
+| Chain config | `assets/networks.json` (Pharos Skill Engine schema) |
+| Skill loader | Pharos Agent Center / Claude Code / Codex / OpenClaw |
+
+The skill is a thin bash wrapper that calls `cast` for every RPC read. No contracts are deployed, no private keys required.
+
+## Dependencies
+
+| Dependency | Required? | Notes |
+|---|---|---|
+| `cast` (Foundry) | **Yes** | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
+| `jq` | **Yes** | `apt install -y jq` or `brew install jq` |
+| `bash` ≥ 4.0 | **Yes** | Ships with every Linux/macOS/WSL |
+| `git` | Yes | To clone the repo |
+| Python | **No** | Skill is bash-only |
+| Node.js | **No** | Skill is bash-only |
 ## License
 
 MIT
